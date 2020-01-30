@@ -4,17 +4,39 @@ from mxnet import gluon
 from mxnet.gluon import nn
 from mxnet import ndarray as nd
 
+def batched_l2_dist(a, b):
+    a_squared = nd.power(nd.norm(a, axis=-1), 2)
+    b_squared = nd.power(nd.norm(b, axis=-1), 2)
+
+    squared_res = nd.add(nd.linalg_gemm(
+        a, nd.transpose(b, axes=(0, 2, 1)), nd.broadcast_axes(nd.expand_dims(b_squared, axis=-2), axis=1, size=a.shape[1]), alpha=-2
+    ), nd.expand_dims(a_squared, axis=-1))
+    res = nd.sqrt(nd.clip(squared_res, 1e-30, np.finfo(np.float32).max))
+    return res
+
+def batched_l1_dist(a, b):
+    a = nd.expand_dims(a, axis=-2)
+    b = nd.expand_dims(b, axis=-3)
+    res = nd.norm(a - b, ord=1, axis=-1)
+    return res
+
 class TransEScore(nn.Block):
-    def __init__(self, gamma):
+    def __init__(self, gamma, dist_func='l2'):
         super(TransEScore, self).__init__()
         self.gamma = gamma
+        if dist_func == 'l1':
+            self.neg_dist_func = batched_l1_dist
+            self.dist_ord = 1
+        else: # default use l2
+            self.neg_dist_func = batched_l2_dist
+            self.dist_ord = 2
 
     def edge_func(self, edges):
         head = edges.src['emb']
         tail = edges.dst['emb']
         rel = edges.data['emb']
         score = head + rel - tail
-        return {'score': self.gamma - nd.norm(score, ord=1, axis=-1)}
+        return {'score': self.gamma - nd.norm(score, ord=self.dist_ord, axis=-1)}
 
     def prepare(self, g, gpu_id, trace=False):
         pass
@@ -24,7 +46,7 @@ class TransEScore(nn.Block):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -44,18 +66,18 @@ class TransEScore(nn.Block):
         if neg_head:
             def fn(heads, relations, tails, num_chunks, chunk_size, neg_sample_size):
                 hidden_dim = heads.shape[1]
-                heads = heads.reshape(num_chunks, 1, neg_sample_size, hidden_dim)
+                heads = heads.reshape(num_chunks, neg_sample_size, hidden_dim)
                 tails = tails - relations
-                tails = tails.reshape(num_chunks,chunk_size, 1, hidden_dim)
-                return gamma - nd.norm(heads - tails, ord=1, axis=-1)
+                tails = tails.reshape(num_chunks, chunk_size, hidden_dim)
+                return gamma - self.neg_dist_func(tails, heads)
             return fn
         else:
             def fn(heads, relations, tails, num_chunks, chunk_size, neg_sample_size):
                 hidden_dim = heads.shape[1]
                 heads = heads + relations
-                heads = heads.reshape(num_chunks, chunk_size, 1, hidden_dim)
-                tails = tails.reshape(num_chunks, 1, neg_sample_size, hidden_dim)
-                return gamma - nd.norm(heads - tails, ord=1, axis=-1)
+                heads = heads.reshape(num_chunks, chunk_size, hidden_dim)
+                tails = tails.reshape(num_chunks, neg_sample_size, hidden_dim)
+                return gamma - self.neg_dist_func(heads, tails)
             return fn
 
 class TransRScore(nn.Block):
@@ -149,8 +171,8 @@ class TransRScore(nn.Block):
     def reset_parameters(self):
         self.projection_emb.init(1.0)
 
-    def update(self):
-        self.projection_emb.update()
+    def update(self, gpu_id=-1):
+        self.projection_emb.update(gpu_id)
 
     def save(self, path, name):
         self.projection_emb.save(path, name+'projection')
@@ -197,7 +219,7 @@ class DistMultScore(nn.Block):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -254,7 +276,7 @@ class ComplExScore(nn.Block):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -322,7 +344,7 @@ class RESCALScore(nn.Block):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -390,7 +412,7 @@ class RotatEScore(nn.Block):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):

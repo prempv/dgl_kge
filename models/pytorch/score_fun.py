@@ -4,17 +4,37 @@ import torch.nn.functional as functional
 import torch.nn.init as INIT
 import numpy as np
 
+def batched_l2_dist(a, b):
+    a_squared = a.norm(dim=-1).pow(2)
+    b_squared = b.norm(dim=-1).pow(2)
+
+    squared_res = th.baddbmm(
+        b_squared.unsqueeze(-2), a, b.transpose(-2, -1), alpha=-2
+    ).add_(a_squared.unsqueeze(-1))
+    res = squared_res.clamp_min_(1e-30).sqrt_()
+    return res
+
+def batched_l1_dist(a, b):
+    res = th.cdist(a, b, p=1)
+    return res
+
 class TransEScore(nn.Module):
-    def __init__(self, gamma):
+    def __init__(self, gamma, dist_func='l2'):
         super(TransEScore, self).__init__()
         self.gamma = gamma
+        if dist_func == 'l1':
+            self.neg_dist_func = batched_l1_dist
+            self.dist_ord = 1
+        else: # default use l2
+            self.neg_dist_func = batched_l2_dist
+            self.dist_ord = 2
 
     def edge_func(self, edges):
         head = edges.src['emb']
         tail = edges.dst['emb']
         rel = edges.data['emb']
         score = head + rel - tail
-        return {'score': self.gamma - th.norm(score, p=1, dim=-1)}
+        return {'score': self.gamma - th.norm(score, p=self.dist_ord, dim=-1)}
 
     def prepare(self, g, gpu_id, trace=False):
         pass
@@ -27,7 +47,7 @@ class TransEScore(nn.Module):
     def forward(self, g):
         g.apply_edges(lambda edges: self.edge_func(edges))
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -47,7 +67,7 @@ class TransEScore(nn.Module):
                 heads = heads.reshape(num_chunks, neg_sample_size, hidden_dim)
                 tails = tails - relations
                 tails = tails.reshape(num_chunks, chunk_size, hidden_dim)
-                return gamma - th.cdist(tails, heads, p=1)
+                return gamma - self.neg_dist_func(tails, heads)
             return fn
         else:
             def fn(heads, relations, tails, num_chunks, chunk_size, neg_sample_size):
@@ -55,7 +75,7 @@ class TransEScore(nn.Module):
                 heads = heads + relations
                 heads = heads.reshape(num_chunks, chunk_size, hidden_dim)
                 tails = tails.reshape(num_chunks, neg_sample_size, hidden_dim)
-                return gamma - th.cdist(heads, tails, p=1)
+                return gamma - self.neg_dist_func(heads, tails)
             return fn
 
 class TransRScore(nn.Module):
@@ -118,8 +138,8 @@ class TransRScore(nn.Module):
     def reset_parameters(self):
         self.projection_emb.init(1.0)
 
-    def update(self):
-        self.projection_emb.update()
+    def update(self, gpu_id=-1):
+        self.projection_emb.update(gpu_id)
 
     def save(self, path, name):
         self.projection_emb.save(path, name+'projection')
@@ -166,7 +186,7 @@ class DistMultScore(nn.Module):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -223,7 +243,7 @@ class ComplExScore(nn.Module):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -294,7 +314,7 @@ class RESCALScore(nn.Module):
             return head, tail
         return fn
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
@@ -353,7 +373,7 @@ class RotatEScore(nn.Module):
         score = score.norm(dim=0)
         return {'score': self.gamma - score.sum(-1)}
 
-    def update(self):
+    def update(self, gpu_id=-1):
         pass
 
     def reset_parameters(self):
