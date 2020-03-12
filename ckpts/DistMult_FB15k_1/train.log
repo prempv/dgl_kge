@@ -1,0 +1,44 @@
+2020-02-18 02:41:19 INFO     model_name          :DistMult
+2020-02-18 02:41:19 INFO     data_path           :data
+2020-02-18 02:41:19 INFO     dataset             :FB15k
+2020-02-18 02:41:19 INFO     format              :1
+2020-02-18 02:41:19 INFO     save_path           :ckpts/DistMult_FB15k_1
+2020-02-18 02:41:19 INFO     save_emb            :DistMult_FB15k_emb
+2020-02-18 02:41:19 INFO     max_step            :100000
+2020-02-18 02:41:19 INFO     warm_up_step        :None
+2020-02-18 02:41:19 INFO     batch_size          :1024
+2020-02-18 02:41:19 INFO     batch_size_eval     :16
+2020-02-18 02:41:19 INFO     neg_sample_size     :256
+2020-02-18 02:41:19 INFO     neg_chunk_size      :256
+2020-02-18 02:41:19 INFO     neg_deg_sample      :False
+2020-02-18 02:41:19 INFO     neg_deg_sample_eval :False
+2020-02-18 02:41:19 INFO     neg_sample_size_valid:1000
+2020-02-18 02:41:19 INFO     neg_chunk_size_valid:1000
+2020-02-18 02:41:19 INFO     neg_sample_size_test:14951
+2020-02-18 02:41:19 INFO     neg_chunk_size_test :14951
+2020-02-18 02:41:19 INFO     hidden_dim          :2000
+2020-02-18 02:41:19 INFO     lr                  :0.1
+2020-02-18 02:41:19 INFO     gamma               :500.0
+2020-02-18 02:41:19 INFO     eval_percent        :1
+2020-02-18 02:41:19 INFO     no_eval_filter      :False
+2020-02-18 02:41:19 INFO     gpu                 :[0]
+2020-02-18 02:41:19 INFO     mix_cpu_gpu         :False
+2020-02-18 02:41:19 INFO     double_ent          :False
+2020-02-18 02:41:19 INFO     double_rel          :False
+2020-02-18 02:41:19 INFO     seed                :0
+2020-02-18 02:41:19 INFO     log_interval        :1000
+2020-02-18 02:41:19 INFO     eval_interval       :10000
+2020-02-18 02:41:19 INFO     neg_adversarial_sampling:True
+2020-02-18 02:41:19 INFO     adversarial_temperature:1.0
+2020-02-18 02:41:19 INFO     valid               :True
+2020-02-18 02:41:19 INFO     test                :False
+2020-02-18 02:41:19 INFO     regularization_coef :2e-06
+2020-02-18 02:41:19 INFO     regularization_norm :3
+2020-02-18 02:41:19 INFO     num_worker          :16
+2020-02-18 02:41:19 INFO     non_uni_weight      :False
+2020-02-18 02:41:19 INFO     init_step           :0
+2020-02-18 02:41:19 INFO     step                :0
+2020-02-18 02:41:19 INFO     pickle_graph        :False
+2020-02-18 02:41:19 INFO     num_proc            :1
+2020-02-18 02:41:19 INFO     rel_part            :False
+2020-02-18 02:41:19 INFO     eval_filter         :True

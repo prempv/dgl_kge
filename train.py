@@ -346,5 +346,6 @@ def run(args, logger):
 
 if __name__ == '__main__':
     args = ArgParser().parse_args()
+    print("Args: ", args)
     logger = get_logger(args)
     run(args, logger)

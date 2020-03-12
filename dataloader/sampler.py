@@ -64,13 +64,15 @@ def ConstructGraph(edges, n_entities, args):
     pickle_name = 'graph_train.pickle'
     if args.pickle_graph and os.path.exists(os.path.join(args.data_path, args.dataset, pickle_name)):
         with open(os.path.join(args.data_path, args.dataset, pickle_name), 'rb') as graph_file:
+            # PREM
+            print("Construct Graph graph_file: ", graph_file)
             g = pickle.load(graph_file)
             print('Load pickled graph.')
     else:
         src, etype_id, dst = edges
         coo = sp.sparse.coo_matrix((np.ones(len(src)), (src, dst)), shape=[n_entities, n_entities])
         g = dgl.DGLGraph(coo, readonly=True, sort_csr=True)
-        g.edata['tid'] = F.tensor(etype_id, F.int64)
+        g.edata['tid'] = F.if(etype_id, F.int64)
         if args.pickle_graph:
             with open(os.path.join(args.data_path, args.dataset, pickle_name), 'wb') as graph_file:
                 pickle.dump(g, graph_file)
